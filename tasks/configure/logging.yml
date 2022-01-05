@@ -1,0 +1,56 @@
+---
+
+# ldapcompare cannot be used on cn=config https://pagure.io/389-ds-base/issue/49390
+# this excludes state=present and state=absent, but state=exact still works (only does a ldapsearch)
+- name: Configure Audit logging
+  ldap_attrs:
+    server_uri: "{{ ds389_server_uri }}"
+    validate_certs: "{{ ds389_tls.validate_certs }}"
+    start_tls: "{{ ds389_starttls_early }}"
+    bind_dn: "{{ ds389_init_slapd.root_dn }}"
+    bind_pw: "{{ ds389_init_slapd.root_password }}"
+    dn: cn=config
+    attributes:
+      nsslapd-auditlog-logging-enabled: "{{ 'on' if ds389_logging.audit.enabled else 'off' }}"
+      nsslapd-auditlog-logrotationtimeunit: "{{ ds389_logging.audit.logrotationtimeunit }}"
+      nsslapd-auditlog-logmaxdiskspace: "{{ ds389_logging.audit.logmaxdiskspace }}"
+      nsslapd-auditlog-maxlogsize: "{{ ds389_logging.audit.maxlogsize }}"
+      nsslapd-auditlog-maxlogsperdir: "{{ ds389_logging.audit.maxlogsperdir }}"
+      nsslapd-auditlog-mode: "{{ ds389_logging.audit.mode }}"
+    state: exact
+
+- name: Configure Error logging
+  ldap_attrs:
+    server_uri: "{{ ds389_server_uri }}"
+    validate_certs: "{{ ds389_tls.validate_certs }}"
+    start_tls: "{{ ds389_starttls_early }}"
+    bind_dn: "{{ ds389_init_slapd.root_dn }}"
+    bind_pw: "{{ ds389_init_slapd.root_password }}"
+    dn: cn=config
+    attributes:
+      nsslapd-errorlog-logging-enabled: "{{ 'on' if ds389_logging.error.enabled else 'off' }}"
+      nsslapd-errorlog-logrotationtimeunit: "{{ ds389_logging.error.logrotationtimeunit }}"
+      nsslapd-errorlog-logmaxdiskspace: "{{ ds389_logging.error.logmaxdiskspace }}"
+      nsslapd-errorlog-maxlogsize: "{{ ds389_logging.error.maxlogsize }}"
+      nsslapd-errorlog-maxlogsperdir: "{{ ds389_logging.error.maxlogsperdir }}"
+      nsslapd-errorlog-mode: "{{ ds389_logging.error.mode }}"
+    state: exact
+
+- name: Configure Access logging
+  ldap_attrs:
+    server_uri: "{{ ds389_server_uri }}"
+    validate_certs: "{{ ds389_tls.validate_certs }}"
+    start_tls: "{{ ds389_starttls_early }}"
+    bind_dn: "{{ ds389_init_slapd.root_dn }}"
+    bind_pw: "{{ ds389_init_slapd.root_password }}"
+    dn: cn=config
+    attributes:
+      nsslapd-accesslog-logging-enabled: "{{ 'on' if ds389_logging.access.enabled else 'off' }}"
+      nsslapd-accesslog-logrotationtimeunit: "{{ ds389_logging.access.logrotationtimeunit }}"
+      nsslapd-accesslog-logmaxdiskspace: "{{ ds389_logging.access.logmaxdiskspace }}"
+      nsslapd-accesslog-maxlogsize: "{{ ds389_logging.access.maxlogsize }}"
+      nsslapd-accesslog-maxlogsperdir: "{{ ds389_logging.access.maxlogsperdir }}"
+      nsslapd-accesslog-mode: "{{ ds389_logging.access.mode }}"
+    state: exact
+
+...

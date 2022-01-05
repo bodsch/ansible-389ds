@@ -1,0 +1,50 @@
+---
+
+ds389_requirements: []
+
+# ------------------------------------------------------------------------------------------------
+
+ds389_defaults_init_general:
+  version: ""
+  machine_name: "{{ ansible_nodename }}"
+
+ds389_defaults_init_slapd:
+  instance_name: default
+  listen: 0.0.0.0
+  secure_listen: 0.0.0.0
+  port: 389
+  root_dn: cn=Directory Manager
+  root_password: "Bwmo5xqKeXDg2xkhFwhNLG1k8G9fUfS9q5FQ70I8uD"
+  self_sign_cert: true
+  self_sign_cert_valid_months: 4
+  db_home_dir: ""
+  run_dir: "/run"
+
+ds389_defaults_init_backend:
+  - name: userRoot
+    sample_entries: true
+    suffix: dc=example,dc=com
+    create_suffix_entry: true
+    # - name: next
+    #   sample_entries: true
+    #   suffix: dc=next,dc=lan
+    #   create_suffix_entry: true
+
+ds389_defaults_tls:
+  enabled: false
+  enforced: false
+  #key: ""
+  #cert: ""
+  key_file: tls_test_local.key
+  cert_file: tls_test_local_cert.pem
+  files_remote: false
+  # As in, "publicly trusted because it's signed by a public and recognized CA"
+  validate_certs: false
+  enforced_initially_binds:
+  min_version: "1.2"
+  # Ansible is not secure enough for a SSF of 256 for 389DS 1.4.X
+  # Unfortunately we don't yet have access to dirsrv_legacy or the
+  # installed version so we need to base the condition on the CentOS version
+  min_ssf: 256
+
+...

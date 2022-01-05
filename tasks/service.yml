@@ -1,0 +1,19 @@
+---
+
+- name: start and enable 389DS {{ ds389_init_slapd.instance_name }} instance
+  become: true
+  service:
+    name: "dirsrv@{{ ds389_init_slapd.instance_name }}"
+    state: started
+    enabled: true
+
+# The setup script starts the server itself, but the service/target
+# still needs to be enabled. In my tests I've found that enabling
+# dirsrv@serverid is not enough, it still doesn't start automatically...
+- name: Enable systemd target
+  become: true
+  service:
+    name: dirsrv.target
+    enabled: true
+
+...

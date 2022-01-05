@@ -1,0 +1,65 @@
+---
+# The tasks run on the same server as 389DS, so this will be localhost in most cases
+ds389_server_uri: "ldap://localhost:{{ ds389_init_slapd.port }}"
+
+ds389_init_general: {}
+
+ds389_init_slapd: {}
+
+ds389_init_backend:
+  - name: userRoot
+    sample_entries: false
+    suffix: dc=example,dc=com
+    create_suffix_entry: true
+
+ds389_tls: {}
+
+ds389_sasl_plain_enabled: true
+
+ds389_allow_anonymous_binds: 'rootdse'
+ds389_simple_auth_enabled: true
+
+ds389_password_storage_scheme: "PBKDF2_SHA256"
+ds389_install_examples: false
+ds389_ldapi_enabled: true
+
+ds386_plugins_dynamic_load: true
+
+ds389_plugins_enabled: {}
+
+ds389_custom_schema: []
+
+ds389_install_additional_ldif: []
+
+# Cannot use /tmp, see https://github.com/lvps/389ds-server/issues/18
+ds389_install_additional_ldif_dir: "/var/lib/dirsrv/slapd-{{ ds389_init_slapd.instance_name }}/ldif"
+
+ds389_logging:
+  audit:
+    enabled: false
+    logrotationtimeunit: day
+    logmaxdiskspace: 400
+    maxlogsize: 200
+    maxlogsperdir: 7
+    mode: 600
+  access:
+    enabled: true
+    logrotationtimeunit: day
+    logmaxdiskspace: 400
+    maxlogsize: 200
+    maxlogsperdir: 7
+    mode: 600
+  error:
+    enabled: true
+    logrotationtimeunit: day
+    logmaxdiskspace: 400
+    maxlogsize: 200
+    maxlogsperdir: 7
+    mode: 600
+
+ds389_dna_plugin:
+  gid_min: 2000
+  gid_max: 2999
+  uid_min: 2000
+  uid_max: 2999
+...

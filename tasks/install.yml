@@ -1,0 +1,9 @@
+---
+
+- name: Install ds389 packages
+  become: true
+  package:
+    name: "{{ ds389_packages }}"
+    state: present
+
+...

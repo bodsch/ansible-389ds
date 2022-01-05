@@ -1,0 +1,21 @@
+---
+
+- name: restart ds389
+  become: true
+  service:
+    name: "dirsrv@{{ ds389_init_slapd.instance_name }}"
+    state: restarted
+
+- name: reload ds389
+  become: true
+  service:
+    name: "dirsrv@{{ ds389_init_slapd.instance_name }}"
+    state: reloaded
+
+- name: daemon-reload
+  become: true
+  systemd:
+    daemon_reload: true
+    force: true
+
+...

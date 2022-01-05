@@ -1,0 +1,13 @@
+---
+
+ds389_requirements:
+  - iproute2
+  - libjemalloc2
+
+ds389_packages:
+  - 389-ds
+  - 389-ds-base
+  - 389-ds-base-libs
+  - python3-lib389
+
+...

@@ -1,0 +1,19 @@
+---
+
+- name: configure listen address
+  ldap_attrs:
+    server_uri: "{{ ds389_server_uri }}"
+    validate_certs: "{{ ds389_tls.validate_certs }}"
+    start_tls: "{{ ds389_starttls_early }}"
+    bind_dn: "{{ ds389_init_slapd.root_dn }}"
+    bind_pw: "{{ ds389_init_slapd.root_password }}"
+    dn: "cn=config"
+    attributes:
+      nsslapd-listenhost: "{{ ds389_init_slapd.listen }}"
+    state: exact
+  register: ds389_restart_condition_main
+  when:
+    - ds389_init_slapd.listen is defined
+    - ds389_init_slapd.listen != None
+
+...

@@ -1,0 +1,49 @@
+---
+
+- name: Check that tls_enforced makes sense
+  assert:
+    that:
+      - ds389_tls.enabled
+    msg: "ds389_tls.enforced: true doesn't make sense when ds389_tls.enabled: false, enable TLS or disable enforcing"
+  when: ds389_tls.enforced | bool
+  tags: [ ds389_tls ]
+
+- name: Check if TLS is enforced (secure binds)
+  command: |
+    grep "nsslapd-require-secure-binds: on" /etc/dirsrv/slapd-{{ ds389_init_slapd.instance_name }}/dse.ldif
+  register: ds389_tls_enforced_initially_binds
+  changed_when: false
+  failed_when: ds389_tls_enforced_initially_binds.rc != 0 and ds389_tls_enforced_initially_binds.rc != 1
+  tags: [ ds389_tls, ds389_cert, ds389_schema ]  # Needed for all these tags
+
+# If nsslapd-minssf isn't set at all, it defaults to 0.
+# So we have to check if it's defined...
+- name: Check if TLS is enforced (minimum SSF is set)
+  command: |
+    grep "nsslapd-minssf:" /etc/dirsrv/slapd-{{ ds389_init_slapd.instance_name }}/dse.ldif
+  register: ds389_tls_enforced_initially_ssf_set
+  changed_when: false
+  failed_when: ds389_tls_enforced_initially_ssf_set.rc != 0 and ds389_tls_enforced_initially_ssf_set.rc != 1
+  tags: [ ds389_tls, ds389_cert, ds389_schema ]  # Needed for all these tags
+
+# ...and if it's 0 or something else.
+- name: Check if TLS is enforced (minimum SSF)
+  command: |
+    grep "nsslapd-minssf: 0" /etc/dirsrv/slapd-{{ ds389_init_slapd.instance_name }}/dse.ldif
+  register: ds389_tls_enforced_initially_ssf
+  changed_when: false
+  failed_when: ds389_tls_enforced_initially_ssf.rc != 0 and ds389_tls_enforced_initially_ssf.rc != 1
+  tags: [ ds389_tls, ds389_cert, ds389_schema ]  # Needed for all these tags
+
+- name: Prepare LDAP auth data
+  tags: [ ds389_tls, ds389_cert, ds389_schema ]  # Needed for all these tags
+  set_fact:
+    # LDAPI or binding port 389 without STARTTLS will fail, if TLS
+    # is enforced. But we can't bind on port 636 or use STARTTLS
+    # without checking: when the server has been just installed, no
+    # certificates and no TLS are available.
+    # The condition checks "secure-binds is on (found) OR minssf is not 0 (is set and is not 0)"
+    ds389_starttls_early: "{{ ds389_tls_enforced_initially_binds.rc == 0 \
+      or (ds389_tls_enforced_initially_ssf_set.rc == 0 and ds389_tls_enforced_initially_ssf.rc == 1) }}"
+
+...

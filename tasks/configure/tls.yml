@@ -1,0 +1,373 @@
+---
+# TODO: Section 9.4.1.5, “Creating a Password File for Directory Server”.
+# TODO: remove certificate if TLS is disabled?
+
+- name: Check that tls_key and tls_key_file is defined
+  assert:
+    that:
+      - "(ds389_tls.key is defined) != (ds389_tls.key_file is defined)"  # This is a XOR
+    msg: "only one of ds389_tls.key or ds389_tls.key_file must be defined"
+  when: ds389_tls.enabled | bool
+  tags: [ ds389_cert, ds389_tls ]
+
+- name: Check that tls_cert and tls_cert_file is defined
+  assert:
+    that:
+      - "(ds389_tls.cert is defined) != (ds389_tls.cert_file is defined)"  # This is a XOR, again
+    msg: "only one of ds389_tls.cert or ds389_tls.cert_file must be defined"
+  when: ds389_tls.enabled | bool
+  tags: [ ds389_cert, ds389_tls ]
+
+- block:
+    - name: Copy cert (from variable)
+      copy:
+        content: "{{ ds389_tls.cert }}"
+        dest: "/tmp/server-cert-ansible-managed.crt"
+        mode: '400'
+        setype: cert_t
+      when:
+        - ds389_tls.cert is defined
+      changed_when: false
+
+    # TODO: if the file is already on the remote machine,
+    # copying it to /tmp is a pointless waste of time...
+    - name: Copy cert (from file)
+      copy:
+        src: "{{ ds389_tls.cert_file }}"
+        dest: "/tmp/server-cert-ansible-managed.crt"
+        remote_src: "{{ ds389_tls.files_remote }}"
+        mode: '400'
+        setype: cert_t
+      when:
+        - ds389_tls.cert_file is defined
+      changed_when: false
+
+    - name: Copy private key (from variable)
+      copy:
+        content: "{{ ds389_tls.key }}"
+        dest: "/tmp/server-cert-ansible-managed.key"
+        mode: '400'
+        setype: cert_t
+      when:
+        - ds389_tls.key is defined
+      changed_when: false
+
+    - name: Copy private key (from file)
+      copy:
+        src: "{{ ds389_tls.key_file }}"
+        dest: "/tmp/server-cert-ansible-managed.key"
+        remote_src: "{{ ds389_tls.files_remote }}"
+        mode: '400'
+        setype: cert_t
+      when:
+        - ds389_tls.key_file is defined
+      changed_when: false
+
+    # TODO:
+    # count certs before, count them after, if they increased but the grep thing
+    # still finds one, then pk12util chose another nickname. Throw an error and die.
+    # Or check pk12util output
+
+    # This avoids exposing to every user a file that contains the private key.
+    # openssl pkcs12 overwrites the content without changing permissions.
+    - name: Create pkcs12 empty file with correct permissions
+      file:
+        path: "/tmp/server-cert-ansible-managed.p12"
+        setype: cert_t
+        state: touch
+        mode: '400'
+      changed_when: false
+
+    - name: Install openssl to create the pkcs12 file
+      package:
+        name: openssl
+        state: present
+
+    # We need to check if pwdfile.txt is present.
+    # If so, then the NSS database is protected and we need to pass it as a key
+    - name: Stat the password file
+      stat:
+        path: /etc/dirsrv/slapd-{{ ds389_init_slapd.instance_name }}/pwdfile.txt
+      register: ds389_pwdfile_stat
+
+    - name: Define pk12util authentication flag
+      set_fact:
+        ds389_pkutil_authflag: '{% if ds389_pwdfile_stat.stat.exists %}-k /etc/dirsrv/slapd-{{ ds389_init_slapd.instance_name }}/pwdfile.txt{% else %}-K ""{% endif %}'
+
+    - name: Define certutil authentication flag
+      set_fact:
+        ds389_certutil_authflag: '{% if ds389_pwdfile_stat.stat.exists %}-f /etc/dirsrv/slapd-{{ ds389_init_slapd.instance_name }}/pwdfile.txt{% else %}{% endif %}'
+
+    # openssl_pkcs12 does not support certificate chains.
+    # Only the first certificate is considered.
+    # If the chain is manually broken up into pieces, it may be imported,
+    # but that's just too complicated to automate.
+    - name: Create pkcs12
+      command: >
+        openssl pkcs12
+        -export
+        -in "/tmp/server-cert-ansible-managed.crt"
+        -inkey "/tmp/server-cert-ansible-managed.key"
+        -name "server-cert-ansible-managed"
+        -out "/tmp/server-cert-ansible-managed.p12"
+        -nodes -passout pass:
+      changed_when: false
+
+    - name: Add pkcs12 to NSS database
+      command: >
+        pk12util
+        -i /tmp/server-cert-ansible-managed.p12
+        -d /etc/dirsrv/slapd-{{ ds389_init_slapd.instance_name }}
+        {{ ds389_pkutil_authflag }}
+        -W ''
+      changed_when: false
+
+    # pk12util will happily add another certificate with the same
+    # nickname to the NSS database, if the key or something in the
+    # certificate is different. If they are identical, the operation
+    # succeeds but there's only one certificate in the database so
+    # it's all good.
+    # Either way, we need to check the NSS database and remove the old
+    # key/cert. Or at least we should, I don't know what happens if
+    # 389DS finds such duplicate certificates.
+    #
+    # Let's start by counting what we have there
+    #
+    # I don't think this command needs the password-file parameter even if the database is password
+    # protected, but just to be sure...
+    - name: Count Ansible managed keys in NSS database
+      command: >
+        certutil -L
+        -d /etc/dirsrv/slapd-{{ ds389_init_slapd.instance_name }}/
+        {{ ds389_certutil_authflag }}
+        |
+        grep
+        -c "server-cert-ansible-managed"
+      register: ds389_nss_key_count
+      changed_when: false
+
+    # This is needed because Jinja2 templates are not allowed in "when"
+    # and Ansible casts everything to string or boolean, so no integer
+    # variables for us...
+    - name: Count keys
+      set_fact:
+        ds389_nss_key_count_too_many: "{{ ds389_nss_key_count.stdout | int > 1 }}"
+
+    # This is the correct way to remove private keys (section 9.3.8.1
+    # from the Administration Guide), however it removes a "random"
+    # key, so we have to remove all of them and add the correct one
+    # again...
+    - name: Remove old keys from NSS database
+      command: >
+        certutil -F
+        -d /etc/dirsrv/slapd-{{ ds389_init_slapd.instance_name }}
+        -n "server-cert-ansible-managed"
+        {{ ds389_certutil_authflag }}
+      when: ds389_nss_key_count_too_many
+      # I'm still wondering if this loop is horrible or clever...
+      loop: "{{ range(0, ds389_nss_key_count.stdout|int) | list }}"
+
+    - name: Add pkcs12 to NSS database (again)
+      command: >
+        pk12util
+        -i /tmp/server-cert-ansible-managed.p12
+        -n server-cert-ansible-managed
+        -d /etc/dirsrv/slapd-{{ ds389_init_slapd.instance_name }}
+        {{ ds389_pkutil_authflag }}
+        -W ''
+      when: ds389_nss_key_count_too_many
+      register: ds389_restart_condition_tls_1
+
+      # I *think* this may be needed for self-signed certificates, but not entirely sure...
+      # - name: Set certificate parameters
+      #   command: >
+      #     certutil -M
+      #     -d /etc/dirsrv/slapd-{{ ds389_init_slapd.instance_name }}/
+      #     -n server-cert-ansible-managed
+      #     -t "u,u,u"
+      #     {{ ds389_certutil_authflag }}
+      #   when: not ds389_tls.validate_certs
+
+      # --- CA certificates stuff ---------------------------------------
+
+      # The role that I forked added CA certificates to system-wide
+      # trusted CAs.
+      # The manual says to add CA to the instance NSS db. Anyway,
+      # Here's the relevant parts.
+      #
+      # - name: copy public cert chain to ca-trust
+      #   copy:
+      #     content: "{{ tls_cert }}"
+      #     dest: "/etc/pki/ca-trust/source/anchors/{{ tls_cn }}.crt"
+
+      # - name: Add public cert to ca trust
+      #   shell: "/bin/update-ca-trust"
+
+      # -t C,, or -t T,, or -t CT,,?
+      # add -a if the certificate is ASCII encoded
+      # - name: Install certificate into {{ serverid }} NSS db
+      #   command: >
+      #     certutil -A
+      #     -d '/etc/dirsrv/slapd-{{ serverid }}'
+      #     -n 'ansible_managed_{{ serverid }}'
+      #     -t 'C,,'
+      #     -a
+      #     -i '/tmp/ds389_{{ serverid }}_ca_ansible_managed.crt'
+      #     {{ ds389_certutil_authflag }}
+      #   changed_when: false
+
+      # --- end CA certificates stuff -----------------------------------
+
+  when: ds389_tls.enabled | bool
+  tags: [ ds389_cert, ds389_tls ]
+  always:
+    - name: Remove temporary files
+      file:
+        state: absent
+        path: "{{ item }}"
+      loop:
+        - "/tmp/server-cert-ansible-managed.crt"
+        - "/tmp/server-cert-ansible-managed.key"
+        - "/tmp/server-cert-ansible-managed.p12"
+      changed_when: false
+
+- name: Remove RSA configuration for TLS (if disabled)
+  ldap_entry:
+    server_uri: "{{ ds389_server_uri }}"
+    validate_certs: "{{ ds389_tls.validate_certs }}"
+    start_tls: "{{ ds389_starttls_early }}"
+    bind_dn: "{{ ds389_init_slapd.root_dn }}"
+    bind_pw: "{{ ds389_init_slapd.root_password }}"
+    dn: "cn=RSA,cn=encryption,cn=config"
+    state: absent
+  when: not ds389_tls.enabled
+  tags: [ ds389_tls ]
+  register: ds389_restart_condition_tls_2
+
+- name: Create RSA configuration for TLS (if enabled)
+  ldap_entry:
+    server_uri: "{{ ds389_server_uri }}"
+    validate_certs: "{{ ds389_tls.validate_certs }}"
+    start_tls: "{{ ds389_starttls_early }}"
+    bind_dn: "{{ ds389_init_slapd.root_dn }}"
+    bind_pw: "{{ ds389_init_slapd.root_password }}"
+    dn: "cn=RSA,cn=encryption,cn=config"
+    objectClass:
+      - top
+      - nsEncryptionModule
+    state: present
+  when: ds389_tls.enabled | bool
+  tags: [ ds389_tls ]
+  register: ds389_restart_condition_tls_3
+
+- name: Configure RSA parameters
+  ldap_attrs:
+    server_uri: "{{ ds389_server_uri }}"
+    validate_certs: "{{ ds389_tls.validate_certs }}"
+    start_tls: "{{ ds389_starttls_early }}"
+    bind_dn: "{{ ds389_init_slapd.root_dn }}"
+    bind_pw: "{{ ds389_init_slapd.root_password }}"
+    dn: "cn=RSA,cn=encryption,cn=config"
+    attributes:
+      cn: "RSA"
+      nsSSLToken: "internal (software)"
+      nsSSLPersonalitySSL: "server-cert-ansible-managed"
+      nsSSLActivation: "on"
+    state: exact
+  when: ds389_tls.enabled | bool
+  tags: [ ds389_tls ]
+  register: ds389_restart_condition_tls_4
+
+# Note: https://www.port389.org/docs/389ds/howto/howto-ssl.html says
+# that other settings will not activate if nsslapd-security is off.
+# This doesn't seem to be true, all options activate randomly and
+# possibly immediately.
+# Also: for this reason, the order is relevant.
+- name: Configure TLS support
+  ldap_attrs:
+    server_uri: "{{ ds389_server_uri }}"
+    validate_certs: "{{ ds389_tls.validate_certs }}"
+    start_tls: "{{ ds389_starttls_early }}"
+    bind_dn: "{{ ds389_init_slapd.root_dn }}"
+    bind_pw: "{{ ds389_init_slapd.root_password }}"
+    dn: "cn=config"
+    attributes:
+      nsslapd-security: "{{ 'on' if ds389_tls.enabled else 'off' }}"
+    state: exact
+  tags: [ ds389_tls ]
+
+# Doesn't work:
+# - name: Disable TLS-only port (636)
+#   ldap_attrs:
+#     params: "{{ ldap_auth }}"
+#     dn: "cn=config"
+#     attributes:
+#        nsslapd-securePort: "0"
+#     state: exact
+
+- name: Configure TLS minimum version (disable SSL)
+  ldap_attrs:
+    server_uri: "{{ ds389_server_uri }}"
+    validate_certs: "{{ ds389_tls.validate_certs }}"
+    start_tls: "{{ ds389_starttls_early }}"
+    bind_dn: "{{ ds389_init_slapd.root_dn }}"
+    bind_pw: "{{ ds389_init_slapd.root_password }}"
+    dn: cn=encryption,cn=config
+    attributes:
+      nsssl2: "off"
+      nsssl3: "off"
+      sslVersionMin: "TLS{{ ds389_tls.min_version }}"
+    state: exact
+  register: ds389_restart_condition_tls_5
+  when: ds389_tls.enabled | bool
+  tags: [ ds389_tls ]
+
+# TODO: support it?
+- name: Disable TLS client authentication
+  ldap_attrs:
+    server_uri: "{{ ds389_server_uri }}"
+    validate_certs: "{{ ds389_tls.validate_certs }}"
+    start_tls: "{{ ds389_starttls_early }}"
+    bind_dn: "{{ ds389_init_slapd.root_dn }}"
+    bind_pw: "{{ ds389_init_slapd.root_password }}"
+    dn: cn=encryption,cn=config
+    attributes:
+      nsSSLClientAuth: "off"
+    state: exact
+  when: ds389_tls.enabled | bool
+  tags: [ ds389_tls ]
+
+- name: Configure anonymous binds
+  ldap_attrs:
+    server_uri: "{{ ds389_server_uri }}"
+    validate_certs: "{{ ds389_tls.validate_certs }}"
+    start_tls: "{{ ds389_starttls_early }}"
+    bind_dn: "{{ ds389_init_slapd.root_dn }}"
+    bind_pw: "{{ ds389_init_slapd.root_password }}"
+    dn: "cn=config"
+    attributes:
+      nsslapd-allow-anonymous-access: "{{ 'rootdse' if ds389_allow_anonymous_binds == 'rootdse' else 'on' if ds389_allow_anonymous_binds else 'off' }}"
+      # This defaults to "off" and it's better left alone
+      # "nsslapd-allow-unauthenticated-binds": "{{ 'on' if allow_unauthenticated_binds else 'off' }}"
+    state: exact
+  when: ds389_tls.enabled | bool
+  tags: [ ds389_tls ]
+
+- name: Configure secure listen address
+  ldap_attrs:
+    server_uri: "{{ ds389_server_uri }}"
+    validate_certs: "{{ ds389_tls.validate_certs }}"
+    start_tls: "{{ ds389_starttls_early }}"
+    bind_dn: "{{ ds389_init_slapd.root_dn }}"
+    bind_pw: "{{ ds389_init_slapd.root_password }}"
+    dn: "cn=config"
+    attributes:
+      nsslapd-securelistenhost: "{{ ds389_init_slapd.secure_listen }}"
+    state: exact
+  register: ds389_restart_condition_tls_6
+  when:
+    - ds389_init_slapd.secure_listen is defined
+    - ds389_init_slapd.secure_listen != None
+  tags: [ ds389_tls ]
+
+...

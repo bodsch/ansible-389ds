@@ -1,0 +1,36 @@
+---
+
+- block:
+    - name: Configure enforcing of TLS
+      ldap_attrs:
+        server_uri: "{{ ds389_server_uri }}"
+        validate_certs: "{{ ds389_tls.validate_certs }}"
+        start_tls: "{{ ds389_tls.enforced }}"
+        bind_dn: "{{ ds389_init_slapd.root_dn }}"
+        bind_pw: "{{ ds389_init_slapd.root_password }}"
+        dn: "cn=config"
+        attributes:
+          nsslapd-require-secure-binds: "{{ 'on' if ds389_tls.enabled and ds389_tls.enforced else 'off' }}"
+          nsslapd-minssf: "{{ ds389_tls.min_ssf if ds389_tls.enabled and ds389_tls.enforced else '0' }}"
+        state: exact
+      failed_when: false
+      tags: [ dirsrv_tls ]
+      register: ds389_restart_condition_tls_enforcing_1
+
+  rescue:
+    - name: Configure enforcing of TLS, over TLS
+      ldap_attrs:
+        server_uri: "{{ ds389_server_uri }}"
+        validate_certs: "{{ ds389_tls.validate_certs }}"
+        start_tls: "{{ ds389_tls.enforced }}"
+        bind_dn: "{{ ds389_init_slapd.root_dn }}"
+        bind_pw: "{{ ds389_init_slapd.root_password }}"
+        dn: "cn=config"
+        attributes:
+          nsslapd-require-secure-binds: "{{ 'on' if ds389_tls.enabled and ds389_tls.enforced else 'off' }}"
+          nsslapd-minssf: "{{ ds389_tls.min_ssf if ds389_tls.enabled and ds389_tls.enforced else '0' }}"
+        state: exact
+      tags: [ dirsrv_tls ]
+      register: ds389_restart_condition_tls_enforcing_2
+
+...

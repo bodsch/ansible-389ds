@@ -1,0 +1,38 @@
+---
+
+galaxy_info:
+  role_name: ds389
+  namespace: bodsch
+
+  author: Bodo Schulz
+  description: >
+    ansible role to setup 389DS.
+    Should also configures TLS, logging, custom schema files,
+    enable/disable plugins, DNA plugin for UID/GID,
+    LDAPI and SASL PLAIN.
+  license: Apache
+  min_ansible_version: 2.10
+
+  platforms:
+    # - name: EL
+    #   versions:
+    #     - 8
+    # - name: Ubuntu
+    #   versions:
+    #     # 20.04
+    #     - focal
+    - name: Debian
+      versions:
+        # 10
+        # - buster
+        # 11
+        - bullseye
+    # - name: ArchLinux
+
+  galaxy_tags:
+    - ldap
+    - directory
+
+dependencies: []
+
+...

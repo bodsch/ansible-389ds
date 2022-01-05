@@ -1,0 +1,71 @@
+---
+
+- include_tasks: configure/init.yml
+- include_tasks: configure/prepare.yml
+- include_tasks: configure/listener.yml
+- include_tasks: configure/authentication.yml
+- include_tasks: configure/logging.yml
+- include_tasks: configure/plugins.yml
+- include_tasks: configure/schema.yml
+
+- include_tasks: configure/tls.yml
+  when:
+    - ds389_tls is defined
+    - ds389_tls.enabled is defined
+    - ds389_tls.enabled
+
+# Required also to enforce TLS as TLS must be enabled beforehand (requiring a restart).
+- name: "Restart {{ ds389_init_slapd.instance_name }} to enable TLS, authentication, plugins"
+  tags: [ dirsrv_tls, dirsrv_cert, dirsrv_schema ]  # Needed for all these tags
+  service:
+    name: "dirsrv@{{ ds389_init_slapd.instance_name }}"
+    state: restarted
+  # Cannot use an handler due to https://github.com/lvps/389ds-server/issues/16
+  # Cannot use use any fancy woarkaround due to https://github.com/ansible/ansible/issues/63822
+  # Cannot use a generic name for the handler since https://github.com/lvps/389ds-server/pull/14, it *has* to be tied to the server
+  when: "(ds389_restart_condition_main is defined and ds389_restart_condition_main.changed) or\
+        (ds389_restart_condition_plugins_1 is defined and ds389_restart_condition_plugins_1.changed) or\
+        (ds389_restart_condition_plugins_2 is defined and ds389_restart_condition_plugins_2.changed) or\
+        (ds389_restart_condition_plugins_3 is defined and ds389_restart_condition_plugins_3.changed) or\
+        (ds389_restart_condition_plugins_4 is defined and ds389_restart_condition_plugins_4.changed) or\
+        (ds389_restart_condition_auth_1 is defined and ds389_restart_condition_auth_1.changed) or\
+        (ds389_restart_condition_auth_2 is defined and ds389_restart_condition_auth_2.changed) or\
+        (ds389_restart_condition_tls_1 is defined and ds389_restart_condition_tls_1.changed) or\
+        (ds389_restart_condition_tls_2 is defined and ds389_restart_condition_tls_2.changed) or\
+        (ds389_restart_condition_tls_3 is defined and ds389_restart_condition_tls_3.changed) or\
+        (ds389_restart_condition_tls_4 is defined and ds389_restart_condition_tls_4.changed) or\
+        (ds389_restart_condition_tls_5 is defined and ds389_restart_condition_tls_5.changed) or\
+        (ds389_restart_condition_tls_6 is defined and ds389_restart_condition_tls_6.changed)"
+  register: ds389_restart_condition_has_restarted
+
+- name: "Reload schema on {{ ds389_init_slapd.instance_name }}"
+  tags: dirsrv_schema
+  ldap_entry:
+    server_uri: "{{ ds389_server_uri }}"
+    validate_certs: "{{ ds389_tls.validate_certs | bool }}"
+    start_tls: "{{ ds389_tls.enforced }}"
+    bind_dn: "{{ ds389_init_slapd.root_dn }}"
+    bind_pw: "{{ ds389_init_slapd.root_password }}"
+    dn: "cn=ansible-managed schema reload,cn=schema reload task,cn=tasks,cn=config"
+    objectClass:
+      - extensibleObject
+    attributes:
+      cn: ansible-managed schema reload
+      schemadir: "/etc/dirsrv/slapd-{{ ds389_init_slapd.instance_name }}/schema/"
+    state: present
+  when: "not ds389_restart_condition_has_restarted | default(false) and (\
+        (ds389_restart_condition_schema_reload_1 is defined and ds389_restart_condition_schema_reload_1.changed) or\
+        (ds389_restart_condition_schema_reload_2 is defined and ds389_restart_condition_schema_reload_2.changed)\
+        )"
+
+- include: configure/tls_enforcing.yml
+
+# This only happens if TLS is being enforced.
+- name: "Restart {{ ds389_init_slapd.instance_name }} to enforce TLS"
+  service:
+    name: "dirsrv@{{ ds389_init_slapd.instance_name }}"
+    state: restarted
+  when: "(ds389_restart_condition_tls_enforcing_1 is defined and ds389_restart_condition_tls_enforcing_1.changed) or\
+        (ds389_restart_condition_tls_enforcing_2 is defined and ds389_restart_condition_tls_enforcing_2.changed)"
+
+...

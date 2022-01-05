@@ -1,0 +1,44 @@
+# {{ ansible_managed }}
+#
+# Supported directives:
+# https://access.redhat.com/documentation/en-us/red_hat_directory_server/10/html/installation_guide/parameters_in_inf_files
+
+[general]
+config_version = 2
+{% if ds389_init_general.version is defined and ds389_init_general.version | length > 0 %}
+defaults = {{ ds389_init_general.version }}
+{% endif %}
+full_machine_name = {{ ds389_init_general.machine_name }}
+
+[slapd]
+instance_name = {{ ds389_init_slapd.instance_name }}
+port = {{ ds389_init_slapd.port }}
+root_dn = {{ ds389_init_slapd.root_dn }}
+root_password = {{ ds389_init_slapd.root_password }}
+{% if ds389_init_slapd.self_sign_cert is defined %}
+self_sign_cert = {{ ds389_init_slapd.self_sign_cert | bool | ternary('True', 'False') }}
+{% endif %}
+{% if ds389_init_slapd.self_sign_cert_valid_months is defined and ds389_init_slapd.self_sign_cert_valid_months | int > 0 %}
+self_sign_cert_valid_months = {{ ds389_init_slapd.self_sign_cert_valid_months }}
+{% endif %}
+{% if ds389_init_slapd.db_home_dir is defined and ds389_init_slapd.db_home_dir | length > 0 %}
+db_home_dir = {{ ds389_init_slapd.db_home_dir }}
+{% endif %}
+{% if ds389_init_slapd.rundir is defined and ds389_init_slapd.rundir | length > 0 %}
+run_dir = {{ ds389_init_slapd.rundir }}
+{% endif %}
+
+{% if ds389_init_backend is defined and ds389_init_backend | count > 0 %}
+{% for be in ds389_init_backend %}
+[backend-{{ be.name }}]
+{% if be.sample_entries is defined %}
+sample_entries = {{ be.sample_entries | bool | ternary('yes', 'no') }}
+{% endif %}
+{% if be.suffix is defined %}
+suffix = {{ be.suffix }}
+{% endif %}
+{% if be.create_suffix_entry is defined %}
+create_suffix_entry = {{ be.create_suffix_entry | bool | ternary('yes', 'no') }}
+{% endif %}
+{% endfor %}
+{% endif %}
