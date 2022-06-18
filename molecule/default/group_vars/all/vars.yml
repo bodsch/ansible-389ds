@@ -8,7 +8,8 @@ ds389_init_slapd:
   root_password: "Bwmo5xqKeXDg2xkhFwhNLG1k8G9fUfS9q5FQ70I8uD"
 
 ds389_init_backend:
-  - name: userRoot
+  molecule.com:
+    name: moleculeRoot
     sample_entries: false
     suffix: dc=molecule,dc=lan
     create_suffix_entry: true

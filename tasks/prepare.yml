@@ -41,7 +41,10 @@
 - name: merge ds389_init_backend configuration between defaults and custom
   set_fact:
     ds389_init_backend: "{{ ds389_defaults_init_backend |
-      union( ds389_init_backend ) }}"
+      combine( ds389_init_backend, recursive=True ) }}"
+
+    #ds389_init_backend: "{{ ds389_defaults_init_backend |
+    #  union( ds389_init_backend ) }}"
 
 - name: merge ds389_tls configuration between defaults and custom
   set_fact:

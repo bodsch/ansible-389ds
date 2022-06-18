@@ -1,4 +1,5 @@
 ---
+
 # The tasks run on the same server as 389DS, so this will be localhost in most cases
 ds389_server_uri: "ldap://localhost:{{ ds389_init_slapd.port }}"
 
@@ -6,11 +7,7 @@ ds389_init_general: {}
 
 ds389_init_slapd: {}
 
-ds389_init_backend:
-  - name: userRoot
-    sample_entries: false
-    suffix: dc=example,dc=com
-    create_suffix_entry: true
+ds389_init_backend: {}
 
 ds389_tls: {}
 

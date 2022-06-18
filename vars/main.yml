@@ -20,15 +20,7 @@ ds389_defaults_init_slapd:
   db_home_dir: ""
   run_dir: "/run"
 
-ds389_defaults_init_backend:
-  - name: userRoot
-    sample_entries: true
-    suffix: dc=example,dc=com
-    create_suffix_entry: true
-    # - name: next
-    #   sample_entries: true
-    #   suffix: dc=next,dc=lan
-    #   create_suffix_entry: true
+ds389_defaults_init_backend: {}
 
 ds389_defaults_tls:
   enabled: false

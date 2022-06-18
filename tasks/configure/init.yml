@@ -1,12 +1,11 @@
 ---
 
-- name: Check if instance directory exists
+- name: check if instance directory exists
   stat:
     path: "/var/lib/dirsrv/slapd-{{ ds389_init_slapd.instance_name }}"
   register: ds389_instance_dir
 
-
-- name: "Check if {{ ds389_init_slapd.instance_name }} instance directory exists"
+- name: check if {{ ds389_init_slapd.instance_name }} instance directory exists
   set_fact:
     ds389_instance_dir_exists: "{{ ds389_instance_dir.stat.exists and ds389_instance_dir.stat.isdir }}"
 
@@ -19,9 +18,9 @@
       when:
         - not ds389_instance_dir_exists
 
-    # On newer versions of 389DS setup-ds.pl got deprecated and separated in a legacy package
+    # On newer versions of 389ds setup-ds.pl got deprecated and separated in a legacy package
     # Here we're using the modern equivalent, with a completely different API...
-    - name: Run installation script (dscreate)
+    - name: run installation script (dscreate)
       become: true
       command: |
         /usr/sbin/dscreate \
@@ -42,7 +41,7 @@
 
     # The newer version of the install.ini file does not have a InstallLdifFile object anymore
     # So we manually install extra ldifs later
-    - name: Install additional ldif files (dsconf)
+    - name: install additional ldif files (dsconf)
       command: >
         /usr/sbin/dsconf
         {{ ds389_init_slapd.instance_name }}
@@ -53,7 +52,7 @@
         - not ds389_instance_dir_exists
       loop: "{{ ds389_install_additional_ldif }}"
 
-    - name: Delete temporary additional ldif files (dsconf)
+    - name: delete temporary additional ldif files (dsconf)
       file:
         path: "{{ ds389_install_additional_ldif_dir }}/{{ item | basename }}"
         state: absent
@@ -62,12 +61,12 @@
       loop: "{{ ds389_install_additional_ldif }}"
 
   always:
-    - name: Remove installation template
+    - name: remove installation template
       file:
         state: absent
         path: /tmp/install.inf
 
-- name: restart 389DS {{ ds389_init_slapd.instance_name }} instance
+- name: restart 389ds {{ ds389_init_slapd.instance_name }} instance
   become: true
   service:
     name: "dirsrv@{{ ds389_init_slapd.instance_name }}"
