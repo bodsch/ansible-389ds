@@ -141,3 +141,4 @@
           - "'desc' in ds389_pwdstorage_result.details"
           - "{{ ds389_pwdstorage_result.details }}.desc == 'No such attribute'"
 
+...
