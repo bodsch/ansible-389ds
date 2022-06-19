@@ -1,6 +1,6 @@
 ---
 - block:
-    - name: Set configuration to enable LDAPI
+    - name: set configuration to enable LDAPI
       set_fact:
         ds389_ldapi_config:
           nsslapd-ldapilisten: "on"
@@ -8,6 +8,7 @@
           nsslapd-ldapifilepath: "{{ ds389_init_slapd.run_dir }}/slapd-{{ ds389_init_slapd.instance_name }}.socket"
           nsslapd-ldapiautobind: "on"
           nsslapd-ldapimaptoentries: "off"
+          nsslapd-minssf: "{{ ds389_init_slapd.minssf | default('0') | int }}"
       when:
         - ds389_ldapi_enabled | bool
 

@@ -6,4 +6,11 @@
     name: "{{ ds389_packages }}"
     state: present
 
+- name: fix home for user dirsrv
+  user:
+    name: dirsrv
+    home: /var/lib/dirsrv
+  when:
+    - ansible_distribution | lower == "archlinux"
+
 ...

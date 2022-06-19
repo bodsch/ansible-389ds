@@ -4,7 +4,7 @@ snakeoil_domain: molecule.lan
 # snakeoil_force: true
 snakeoil_alt_names:
   - dns:
+      - molecule.lan
       - ldap.molecule.lan
-      - www.molecule.lan
 
 ...

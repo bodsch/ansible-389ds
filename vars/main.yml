@@ -19,6 +19,7 @@ ds389_defaults_init_slapd:
   self_sign_cert_valid_months: 4
   db_home_dir: ""
   run_dir: "/run"
+  minssf: 256
 
 ds389_defaults_init_backend: {}
 
