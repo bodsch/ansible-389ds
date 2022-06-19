@@ -3,6 +3,7 @@
 ds389_requirements:
   - iproute2
   - libjemalloc2
+  - libnss3-tools
 
 ds389_packages:
   - 389-ds

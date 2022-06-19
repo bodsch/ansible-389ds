@@ -26,7 +26,9 @@
   package:
     name: "{{ ds389_requirements }}"
     state: present
-
+  when:
+    - ds389_requirements is defined
+    - ds389_requirements | count > 0
 
 - name: merge ds389_init_general configuration between defaults and custom
   set_fact:
@@ -42,9 +44,6 @@
   set_fact:
     ds389_init_backend: "{{ ds389_defaults_init_backend |
       combine( ds389_init_backend, recursive=True ) }}"
-
-    #ds389_init_backend: "{{ ds389_defaults_init_backend |
-    #  union( ds389_init_backend ) }}"
 
 - name: merge ds389_tls configuration between defaults and custom
   set_fact:

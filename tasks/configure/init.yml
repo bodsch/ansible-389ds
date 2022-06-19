@@ -1,5 +1,13 @@
 ---
 
+- name: create symlink for user home
+  file:
+    state: link
+    src: /var/lib/dirsrv
+    dest: /var/lib/389-ds-base
+  when:
+    - ansible_distribution | lower == "archlinux"
+
 - name: check if instance directory exists
   stat:
     path: "/var/lib/dirsrv/slapd-{{ ds389_init_slapd.instance_name }}"

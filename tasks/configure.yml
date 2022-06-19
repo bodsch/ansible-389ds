@@ -58,7 +58,7 @@
         (ds389_restart_condition_schema_reload_2 is defined and ds389_restart_condition_schema_reload_2.changed)\
         )"
 
-- include: configure/tls_enforcing.yml
+- include_tasks: configure/tls_enforcing.yml
 
 # This only happens if TLS is being enforced.
 - name: "Restart {{ ds389_init_slapd.instance_name }} to enforce TLS"

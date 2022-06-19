@@ -10,7 +10,7 @@
 # The setup script starts the server itself, but the service/target
 # still needs to be enabled. In my tests I've found that enabling
 # dirsrv@serverid is not enough, it still doesn't start automatically...
-- name: Enable systemd target
+- name: enable systemd target
   become: true
   service:
     name: dirsrv.target

@@ -1,0 +1,10 @@
+---
+
+ds389_requirements:
+  - iproute2
+
+ds389_packages:
+  - 389-ds-base
+#  - python3-lib389
+
+...
