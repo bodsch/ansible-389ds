@@ -30,24 +30,31 @@
     - ds389_requirements is defined
     - ds389_requirements | count > 0
 
-- name: merge ds389_init_general configuration between defaults and custom
+- name: merge ds389 init_general configuration between defaults and custom
   set_fact:
     ds389_init_general: "{{ ds389_defaults_init_general |
       combine( ds389_init_general, recursive=True ) }}"
 
-- name: merge ds389_init_slapd configuration between defaults and custom
+- name: merge ds389 init_slapd configuration between defaults and custom
   set_fact:
     ds389_init_slapd: "{{ ds389_defaults_init_slapd |
       combine( ds389_init_slapd, recursive=True ) }}"
 
-- name: merge ds389_init_backend configuration between defaults and custom
+- name: merge ds389 init_backend configuration between defaults and custom
   set_fact:
     ds389_init_backend: "{{ ds389_defaults_init_backend |
       combine( ds389_init_backend, recursive=True ) }}"
 
-- name: merge ds389_tls configuration between defaults and custom
+- name: merge ds389 tls configuration between defaults and custom
   set_fact:
     ds389_tls: "{{ ds389_defaults_tls |
       combine( ds389_tls, recursive=True ) }}"
+
+- name: merge ds389 logging configuration between defaults and custom
+  set_fact:
+    ds389_logging: "{{ ds389_defaults_logging |
+      combine( ds389_logging, recursive=True ) }}"
+
+
 
 ...

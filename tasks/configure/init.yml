@@ -19,12 +19,16 @@
         - not ds389_instance_dir_exists
 
     # On newer versions of 389ds setup-ds.pl got deprecated and separated in a legacy package
-    # Here we're using the modern equivalent, with a completely different API...
+    # Here we're using the modern equivalent, with a completely different API ...
     - name: run installation script (dscreate)
       become: true
-      command: |
-        /usr/sbin/dscreate \
-          from-file /tmp/install.inf
+      dscreate:
+        from_file: /tmp/install.inf
+        verbose: true
+      register: _dscreate
+      #command: |
+      #  /usr/sbin/dscreate \
+      #    from-file /tmp/install.inf
       when:
         - not ds389_instance_dir_exists
 
@@ -42,12 +46,20 @@
     # The newer version of the install.ini file does not have a InstallLdifFile object anymore
     # So we manually install extra ldifs later
     - name: install additional ldif files (dsconf)
-      command: >
-        /usr/sbin/dsconf
-        {{ ds389_init_slapd.instance_name }}
-        backend import
-        {{ ds389_init_backend.[0].name }}
-        {{ ds389_install_additional_ldif_dir }}/{{ item | basename }}
+      dsconf:
+        instance: "{{ ds389_init_slapd.instance_name }}"
+        resources:
+          - backend
+          - import
+          - "{{ ds389_init_backend.[0].name }}"
+          - "{{ ds389_install_additional_ldif_dir }}/{{ item | basename }}"
+        verbose: true
+      # command: >
+      #   /usr/sbin/dsconf
+      #   {{ ds389_init_slapd.instance_name }}
+      #   backend import
+      #   {{ ds389_init_backend.[0].name }}
+      #   {{ ds389_install_additional_ldif_dir }}/{{ item | basename }}
       when:
         - not ds389_instance_dir_exists
       loop: "{{ ds389_install_additional_ldif }}"
@@ -60,12 +72,16 @@
         - not ds389_instance_dir_exists
       loop: "{{ ds389_install_additional_ldif }}"
 
+  when:
+    - not ds389_instance_dir_exists
+
   always:
     - name: remove installation template
       file:
         state: absent
         path: /tmp/install.inf
 
+# einmal okay, aber bei jedem lauf!?
 - name: restart 389ds {{ ds389_init_slapd.instance_name }} instance
   become: true
   service:

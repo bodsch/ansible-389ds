@@ -45,6 +45,8 @@ ds389_ldapi_enabled: true
 
 ds386_plugins_dynamic_load: true
 
+# https://access.redhat.com/documentation/en-us/red_hat_directory_server/11/html-single/administration_guide/index#listing_the_available_plug-ins
+# https://possiblelossofprecision.net/?p=2534
 ds389_plugins_enabled: {}
 
 ds389_custom_schema: []

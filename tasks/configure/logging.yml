@@ -2,8 +2,9 @@
 
 # ldapcompare cannot be used on cn=config https://pagure.io/389-ds-base/issue/49390
 # this excludes state=present and state=absent, but state=exact still works (only does a ldapsearch)
-- name: Configure Audit logging
+- name: configure audit logging
   ldap_attrs:
+    state: exact
     server_uri: "{{ ds389_server_uri }}"
     validate_certs: "{{ ds389_tls.validate_certs }}"
     start_tls: "{{ ds389_starttls_early }}"
@@ -17,10 +18,10 @@
       nsslapd-auditlog-maxlogsize: "{{ ds389_logging.audit.maxlogsize }}"
       nsslapd-auditlog-maxlogsperdir: "{{ ds389_logging.audit.maxlogsperdir }}"
       nsslapd-auditlog-mode: "{{ ds389_logging.audit.mode }}"
-    state: exact
 
-- name: Configure Error logging
+- name: configure error logging
   ldap_attrs:
+    state: exact
     server_uri: "{{ ds389_server_uri }}"
     validate_certs: "{{ ds389_tls.validate_certs }}"
     start_tls: "{{ ds389_starttls_early }}"
@@ -34,10 +35,10 @@
       nsslapd-errorlog-maxlogsize: "{{ ds389_logging.error.maxlogsize }}"
       nsslapd-errorlog-maxlogsperdir: "{{ ds389_logging.error.maxlogsperdir }}"
       nsslapd-errorlog-mode: "{{ ds389_logging.error.mode }}"
-    state: exact
 
-- name: Configure Access logging
+- name: configure access logging
   ldap_attrs:
+    state: exact
     server_uri: "{{ ds389_server_uri }}"
     validate_certs: "{{ ds389_tls.validate_certs }}"
     start_tls: "{{ ds389_starttls_early }}"
@@ -51,6 +52,5 @@
       nsslapd-accesslog-maxlogsize: "{{ ds389_logging.access.maxlogsize }}"
       nsslapd-accesslog-maxlogsperdir: "{{ ds389_logging.access.maxlogsperdir }}"
       nsslapd-accesslog-mode: "{{ ds389_logging.access.mode }}"
-    state: exact
 
 ...

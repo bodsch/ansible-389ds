@@ -5,8 +5,10 @@
     that:
       - ds389_tls.enabled
     msg: "ds389_tls.enforced: true doesn't make sense when ds389_tls.enabled: false, enable TLS or disable enforcing"
-  when: ds389_tls.enforced | bool
-  tags: [ ds389_tls ]
+  when:
+    - ds389_tls.enforced | bool
+  tags:
+    - ds389_tls
 
 - name: Check if TLS is enforced (secure binds)
   command: |
@@ -14,7 +16,11 @@
   register: ds389_tls_enforced_initially_binds
   changed_when: false
   failed_when: ds389_tls_enforced_initially_binds.rc != 0 and ds389_tls_enforced_initially_binds.rc != 1
-  tags: [ ds389_tls, ds389_cert, ds389_schema ]  # Needed for all these tags
+  tags:
+    # Needed for all these tags
+    - ds389_tls
+    - ds389_cert
+    - ds389_schema
 
 # If nsslapd-minssf isn't set at all, it defaults to 0.
 # So we have to check if it's defined...
@@ -24,7 +30,11 @@
   register: ds389_tls_enforced_initially_ssf_set
   changed_when: false
   failed_when: ds389_tls_enforced_initially_ssf_set.rc != 0 and ds389_tls_enforced_initially_ssf_set.rc != 1
-  tags: [ ds389_tls, ds389_cert, ds389_schema ]  # Needed for all these tags
+  tags:
+    # Needed for all these tags
+    - ds389_tls
+    - ds389_cert
+    - ds389_schema
 
 # ...and if it's 0 or something else.
 - name: Check if TLS is enforced (minimum SSF)
@@ -33,10 +43,20 @@
   register: ds389_tls_enforced_initially_ssf
   changed_when: false
   failed_when: ds389_tls_enforced_initially_ssf.rc != 0 and ds389_tls_enforced_initially_ssf.rc != 1
-  tags: [ ds389_tls, ds389_cert, ds389_schema ]  # Needed for all these tags
+  tags:
+    # Needed for all these tags
+    - ds389_tls
+    - ds389_cert
+    - ds389_schema
+
+- name: d
+  debug:
+    msg:
+      - "ds389_tls_enforced_initially_binds   : {{ ds389_tls_enforced_initially_binds.rc }}"
+      - "ds389_tls_enforced_initially_ssf_set : {{ ds389_tls_enforced_initially_ssf_set.rc }}"
+      - "ds389_tls_enforced_initially_ssf     : {{ ds389_tls_enforced_initially_ssf.rc }}"
 
 - name: Prepare LDAP auth data
-  tags: [ ds389_tls, ds389_cert, ds389_schema ]  # Needed for all these tags
   set_fact:
     # LDAPI or binding port 389 without STARTTLS will fail, if TLS
     # is enforced. But we can't bind on port 636 or use STARTTLS
@@ -45,5 +65,15 @@
     # The condition checks "secure-binds is on (found) OR minssf is not 0 (is set and is not 0)"
     ds389_starttls_early: "{{ ds389_tls_enforced_initially_binds.rc == 0 \
       or (ds389_tls_enforced_initially_ssf_set.rc == 0 and ds389_tls_enforced_initially_ssf.rc == 1) }}"
+  tags:
+    # Needed for all these tags
+    - ds389_tls
+    - ds389_cert
+    - ds389_schema
+
+- name: d
+  debug:
+    msg:
+      - "ds389_starttls_early   : {{ ds389_starttls_early }}"
 
 ...

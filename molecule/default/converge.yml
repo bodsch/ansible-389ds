@@ -9,30 +9,29 @@
   roles:
     - role: ansible-389ds
 
-
-  post_tasks:
-    - name: ensure container entries exist, for testing
-      ldap_entry:
-        server_uri: "ldap://localhost"
-        bind_dn: "cn=Directory Manager"
-        bind_pw: "Bwmo5xqKeXDg2xkhFwhNLG1k8G9fUfS9q5FQ70I8uD"
-        # dn: "{{ item.dn }}"
-        # objectClass: "{{ item.objectClass }}"
-        dn: "cn=config"
-        objectClass: top
-        state: present
-      # loop:
-      #   - dn: "ou=Groups,dc=example,dc=local"
-      #     objectClass:
-      #       - organizationalunit
-      #       - top
-      #   - dn: "ou=People,dc=example,dc=local"
-      #     objectClass:
-      #       - organizationalunit
-      #       - top
-      register: dirsrv_test_containers
-      # failed_when: dirsrv_test_containers.changed
-
-    - name: test container output
-      debug:
-        msg: "{{ dirsrv_test_containers }}"
+  # post_tasks:
+  #   - name: ensure container entries exist, for testing
+  #     ldap_entry:
+  #       server_uri: "ldap://localhost"
+  #       bind_dn: "cn=Directory Manager"
+  #       bind_pw: "Bwmo5xqKeXDg2xkhFwhNLG1k8G9fUfS9q5FQ70I8uD"
+  #       # dn: "{{ item.dn }}"
+  #       # objectClass: "{{ item.objectClass }}"
+  #       dn: "cn=config"
+  #       objectClass: top
+  #       state: present
+  #     # loop:
+  #     #   - dn: "ou=Groups,dc=example,dc=local"
+  #     #     objectClass:
+  #     #       - organizationalunit
+  #     #       - top
+  #     #   - dn: "ou=People,dc=example,dc=local"
+  #     #     objectClass:
+  #     #       - organizationalunit
+  #     #       - top
+  #     register: dirsrv_test_containers
+  #     # failed_when: dirsrv_test_containers.changed
+  #
+  #   - name: test container output
+  #     debug:
+  #       msg: "{{ dirsrv_test_containers }}"

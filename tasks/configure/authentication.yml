@@ -12,7 +12,7 @@
       when:
         - ds389_ldapi_enabled | bool
 
-    - name: Set configuration to disable LDAPI
+    - name: set configuration to disable LDAPI
       set_fact:
         ds389_ldapi_config:
           nsslapd-ldapilisten: "off"
@@ -20,7 +20,12 @@
       when:
         - not ds389_ldapi_enabled
 
-    - name: Configure LDAPI
+    - name: d
+      debug:
+        msg:
+          - "ds389_ldapi_config   : {{ ds389_ldapi_config }}"
+
+    - name: configure LDAPI
       ldap_attrs:
         server_uri: "{{ ds389_server_uri }}"
         validate_certs: "{{ ds389_tls.validate_certs | bool }}"
@@ -33,7 +38,7 @@
       register: ds389_restart_condition_auth_1
 
   rescue:
-    - name: Configure LDAPI over LDAPI
+    - name: configure LDAPI over LDAPI
       ldap_attrs:
         server_uri: "ldapi://{{ ds389_init_slapd.run_dir }}/slapd-{{ ds389_init_slapd.instance_name }}.socket"
         bind_dn: "{{ ds389_init_slapd.root_dn }}"
@@ -43,21 +48,27 @@
         state: exact
       register: ds389_restart_condition_auth_2
 
+
+- name: d
+  debug:
+    msg:
+      - "ds389_restart_condition_auth_1   : {{ ds389_restart_condition_auth_1 | default({}) }}"
+      - "ds389_restart_condition_auth_2   : {{ ds389_restart_condition_auth_2 | default({}) }}"
+
 # Documentation: https://directory.fedoraproject.org/docs/389ds/design/sasl-mechanism-configuration.html
 # TODO: "none" means "everything is allowed"...
 # how to allow none (or just EXTERNAL that is always enabled but not always allowed or whatever?)
 - block:
-    # - name: d
-    #   debug:
-    #     msg:
-    #       - "{{ ds389_server_uri }}"
-    #       - "{{ ds389_tls.validate_certs | bool }}"
-    #       - "{{ ds389_starttls_early }}"
-    #       - "{{ ds389_init_slapd.root_dn  }}"
-    #       - "{{ ds389_init_slapd.root_password  }}"
-    #       - "{{'PLAIN' if ds389_sasl_plain_enabled else [] }}"
+    - name: d
+      debug:
+        msg:
+          - "ds389_server_uri               : {{ ds389_server_uri }}"
+          - "ds389_tls.validate_certs       : {{ ds389_tls.validate_certs | bool }}"
+          - "ds389_init_slapd.root_dn       : {{ ds389_init_slapd.root_dn  }}"
+          - "ds389_init_slapd.root_password : {{ ds389_init_slapd.root_password  }}"
+          - "ds389_sasl_plain_enabled       : {{ 'PLAIN' if ds389_sasl_plain_enabled else [] }}"
 
-    - name: Configure SASL
+    - name: configure SASL
       ldap_attrs:
         server_uri: "{{ ds389_server_uri }}"
         validate_certs: "{{ ds389_tls.validate_certs | bool }}"
@@ -69,10 +80,16 @@
           nsslapd-allowed-sasl-mechanisms: "{{ 'PLAIN' if ds389_sasl_plain_enabled else [] }}"
         state: exact
       register: ds389_sasl_result
+
+    - name: d
+      debug:
+        msg:
+          - "{{ ds389_sasl_result }}"
+
   rescue:
     # Deleting an attribute fails if the the attribute doesn't exist,
     # yay for idempotence...
-    - name: Assert that task failed successfully
+    - name: assert that task failed successfully
       assert:
         that:
           - not ds389_sasl_result.changed
@@ -90,6 +107,11 @@
           {% if ds389_password_storage_scheme == [] %}DEFAULT{%
           else
           %}{{ ds389_password_storage_scheme }}{% endif %}
+
+    - name: d
+      debug:
+        msg:
+          - "ds389_normalized_password_storage_scheme   : {{ ds389_normalized_password_storage_scheme }}"
 
     # if we use DEFAULT as password value to reset the field in 389DS 1.4.X we fail idempotence tests
     # since "DEFAULT" is different from whatever scheme is currently used

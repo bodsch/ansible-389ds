@@ -19,15 +19,15 @@ ds389_defaults_init_slapd:
   self_sign_cert_valid_months: 4
   db_home_dir: ""
   run_dir: "/run"
-  minssf: 256
+  minssf: 0
 
 ds389_defaults_init_backend: {}
 
 ds389_defaults_tls:
   enabled: false
   enforced: false
-  #key: ""
-  #cert: ""
+  # key: ""
+  # cert: ""
   key_file: tls_test_local.key
   cert_file: tls_test_local_cert.pem
   files_remote: false
@@ -38,6 +38,29 @@ ds389_defaults_tls:
   # Ansible is not secure enough for a SSF of 256 for 389DS 1.4.X
   # Unfortunately we don't yet have access to dirsrv_legacy or the
   # installed version so we need to base the condition on the CentOS version
-  min_ssf: 256
+  min_ssf: 0
+
+ds389_defaults_logging:
+  audit:
+    enabled: false
+    logrotationtimeunit: day
+    logmaxdiskspace: 400
+    maxlogsize: 200
+    maxlogsperdir: 7
+    mode: 0640
+  access:
+    enabled: true
+    logrotationtimeunit: day
+    logmaxdiskspace: 400
+    maxlogsize: 200
+    maxlogsperdir: 7
+    mode: 0640
+  error:
+    enabled: true
+    logrotationtimeunit: day
+    logmaxdiskspace: 400
+    maxlogsize: 200
+    maxlogsperdir: 7
+    mode: 0640
 
 ...

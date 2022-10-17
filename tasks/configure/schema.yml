@@ -1,32 +1,44 @@
 ---
-- name: Copy schema files
+
+- name: copy schema files
   copy:
     src: "{{ item }}"
     dest: "/etc/dirsrv/slapd-{{ ds389_init_slapd.instance_name }}/schema"
-    mode: '440'  # 99user.ldif is 660, but these ones should be read only
+    mode: '0440'  # 99user.ldif is 660, but these ones should be read only
     seuser: unconfined_u  # Same as 99user.ldif
     owner: dirsrv
     group: dirsrv
   loop: "{{ ds389_custom_schema }}"
-  tags: [ ds389_schema ]
+  loop_control:
+    label: "{{ item }}"
+  tags:
+    - ds389_schema
   register: ds389_restart_condition_schema_reload_1
 
-- name: Search other schema files
+- name: search other schema files
   find:
     paths: "/etc/dirsrv/slapd-{{ ds389_init_slapd.instance_name }}/schema"
     file_type: file
     # https://stackoverflow.com/a/53758369
     excludes: "{{ ds389_custom_schema | map('basename') | list + ['99user.ldif'] }}"
   register: ds389_found_files
-  tags: [ ds389_schema ]
+  tags:
+    - ds389_schema
 
-- name: Delete other schema files
+- name: d
+  debug:
+    msg:
+      - "ds389_found_files   : {{ ds389_found_files.files }}"
+
+- name: delete other schema files
   file:
     path: "{{ item.path }}"
     state: absent
-  loop: "{{ ds389_found_files['files'] }}"
+  loop: "{{ ds389_found_files.files }}"
   register: ds389_restart_condition_schema_reload_2
-  tags: [ ds389_schema ]
-  when: not ds389_allow_other_schema_files
+  tags:
+    - ds389_schema
+  when:
+    - not ds389_allow_other_schema_files
 
 ...
